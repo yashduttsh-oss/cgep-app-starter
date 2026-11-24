@@ -58,7 +58,13 @@ EXIT=0
   echo "]"
 } > "$EVIDENCE_DIR/conftest-results.json"
 
+# Show every deny and warning in the log, so the PR author sees which
+# control failed and how to fix it. Messages hold addresses and control
+# IDs only, no ARNs or values.
+jq -r '.[][] | ((.failures // [])[] | "DENY: " + .msg), ((.warnings // [])[] | "WARN: " + .msg)' \
+  "$EVIDENCE_DIR/conftest-results.json" || true
+
 if [[ $EXIT -eq 0 ]]; then echo "policy-gate: PASS"
-else echo "policy-gate: FAIL"; echo "See $EVIDENCE_DIR/conftest-results.json"
+else echo "policy-gate: FAIL (full results: $EVIDENCE_DIR/conftest-results.json)"
 fi
 exit $EXIT
