@@ -28,7 +28,7 @@ if command -v sha256sum >/dev/null 2>&1; then SHASUM=(sha256sum); else SHASUM=(s
 IDENTITY='^https://github\.com/yashduttsh-oss/cgep-app-starter/\.github/workflows/grc-gate\.yml@refs/'
 ISSUER='https://token.actions.githubusercontent.com'
 
-WORK=$(mktemp -d); trap 'rm -rf "$WORK"' EXIT; cd "$WORK"
+WORK=$(mktemp -d); trap 'cd /; rm -rf "$WORK"' EXIT; cd "$WORK"
 PREFIX="runs/${RUN_ID}"
 aws "${PROFILE_ARG[@]}" s3 cp "s3://${VAULT}/${PREFIX}/" . --recursive --no-progress \
   --exclude "*" --include "evidence-*.tar.gz*"
