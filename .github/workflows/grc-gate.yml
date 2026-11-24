@@ -1,0 +1,140 @@
+# .github/workflows/grc-gate.yml
+#
+# Layer 3: the GRC evidence pipeline. One job, five ordered steps:
+#   1 Plan -> 2 Policy check -> 3 Apply (merge to main only) -> 4 Sign -> 5 Upload
+#
+# Every run that produces a plan leaves signed evidence in the Object Lock
+# vault, including runs the gate blocks, so a red PR is evidence too.
+# Auth is GitHub OIDC -> the Layer 1 pipeline role; no long-lived keys.
+name: grc-gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write   # AWS OIDC login + Cosign keyless signing
+  contents: read
+  pull-requests: write  # required to comment on the PR
+
+# One Terraform run at a time; never cancel an apply halfway.
+concurrency:
+  group: grc-gate-terraform
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  EVIDENCE_DIR: evidence
+  # terraform.tfvars is gitignored, so CI gets its inputs from repo variables.
+  # A missing variable makes the plan fail: the pipeline fails closed.
+  TF_VAR_kms_key_administrator_arns: ${{ vars.KMS_ADMIN_ARNS }}
+  TF_VAR_github_oidc_subject_prefix: ${{ vars.OIDC_SUBJECT_PREFIX }}
+  TF_VAR_lambda_reserved_concurrency: "-1"   # account concurrency limit is 10 (see WRITEUP)
+
+jobs:
+  grc-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # This is a public repo, so its Actions logs are public. Mask the
+      # account ID so ARNs don't expose it.
+      - name: Mask account ID in logs
+        run: echo "::add-mask::$(aws sts get-caller-identity --query Account --output text)"
+
+      - name: Install tools
+        run: |
+          curl -fsSL https://github.com/open-policy-agent/conftest/releases/download/v0.69.0/conftest_0.69.0_Linux_x86_64.tar.gz \
+            | sudo tar -xz -C /usr/local/bin conftest
+          curl -fsSL -o opa https://github.com/open-policy-agent/opa/releases/download/v1.22.4/opa_linux_amd64_static
+          chmod +x opa && sudo mv opa /usr/local/bin/opa
+          conftest --version && opa version | head -1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.0
+          terraform_wrapper: false
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: "v2.2.4"   # same version proven in Lab 4.4
+
+      # ---- 1. Plan ---------------------------------------------------------
+      # The full plan goes to the evidence bundle, not the public log.
+      - name: 1 · Plan
+        id: plan
+        run: |
+          mkdir -p "$EVIDENCE_DIR"
+          terraform -chdir=terraform init -input=false -no-color > /dev/null
+          terraform -chdir=terraform validate -no-color
+          terraform -chdir=terraform plan -input=false -no-color -out=tfplan > "$EVIDENCE_DIR/plan.txt"
+          grep -E '^  # .* will be|^(Plan:|No changes)' "$EVIDENCE_DIR/plan.txt" || true
+          VAULT=$(terraform -chdir=terraform output -raw evidence_vault_bucket)
+          echo "::add-mask::$VAULT"
+          echo "VAULT=$VAULT" >> "$GITHUB_ENV"
+
+      # ---- 2. Policy check -------------------------------------------------
+      # Runs opa test, then Conftest on the plan for all five namespaces.
+      # Any violation or error fails this step, which skips Apply.
+      - name: 2 · Policy check (Conftest)
+        id: policy
+        run: bash scripts/policy-gate.sh --workspace terraform --policy policies
+
+      # ---- 3. Apply --------------------------------------------------------
+      # Only on a push to main (a merged PR), and only if steps 1-2 passed:
+      # with no status function in `if`, GitHub adds success() itself.
+      # Applies the exact plan the gate approved (tfplan), not a fresh one.
+      - name: 3 · Apply (merge to main only)
+        id: apply
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          terraform -chdir=terraform apply -input=false -no-color tfplan > "$EVIDENCE_DIR/apply.txt" \
+            || { tail -n 30 "$EVIDENCE_DIR/apply.txt"; exit 1; }
+          grep -E '^Apply complete' "$EVIDENCE_DIR/apply.txt"
+
+      # ---- 4. Sign ---------------------------------------------------------
+      # always(): a blocked run is signed too, so the red PR has evidence.
+      # Needs a plan to exist; nothing to attest without one.
+      - name: 4 · Sign evidence bundle (Cosign keyless)
+        id: sign
+        if: always() && steps.plan.outcome == 'success'
+        env:
+          GATE_RESULT: ${{ steps.policy.outcome }}
+          APPLY_RESULT: ${{ steps.apply.outcome }}
+        run: |
+          cp terraform/plan.json "$EVIDENCE_DIR/plan.json" 2>/dev/null \
+            || terraform -chdir=terraform show -json tfplan > "$EVIDENCE_DIR/plan.json"
+          BUNDLE=$(bash scripts/capture-evidence.sh --evidence-dir "$EVIDENCE_DIR" --out-dir dist)
+          cosign sign-blob --yes --bundle "${BUNDLE}.sig.bundle" "$BUNDLE"
+          echo "BUNDLE=$BUNDLE" >> "$GITHUB_ENV"
+
+      # ---- 5. Upload -------------------------------------------------------
+      # Into the Object Lock vault (GOVERNANCE, 365 days by default).
+      - name: 5 · Upload signed bundle to evidence vault
+        if: always() && steps.sign.outcome == 'success'
+        run: |
+          PREFIX="runs/${GITHUB_RUN_ID}"
+          NAME=$(basename "$BUNDLE")
+          for f in "$BUNDLE" "${BUNDLE}.sha256" "${BUNDLE}.sig.bundle"; do
+            aws s3 cp --no-progress "$f" "s3://${VAULT}/${PREFIX}/$(basename "$f")"
+          done
+          VERSION_ID=$(aws s3api head-object --bucket "$VAULT" --key "${PREFIX}/${NAME}" --query VersionId --output text)
+          RETAIN_UNTIL=$(aws s3api get-object-retention --bucket "$VAULT" --key "${PREFIX}/${NAME}" \
+            --query Retention.RetainUntilDate --output text)
+          jq -n --arg run "$GITHUB_RUN_ID" --arg key "${PREFIX}/${NAME}" --arg ver "$VERSION_ID" \
+                --arg sha "$(cat "${BUNDLE}.sha256")" --arg commit "$GITHUB_SHA" --arg until "$RETAIN_UNTIL" \
+            '{run_id:$run, bundle_key:$key, version_id:$ver, sha256:$sha, commit:$commit, retain_until:$until}' \
+            > receipt.json
+          aws s3 cp --no-progress receipt.json "s3://${VAULT}/${PREFIX}/receipt.json"
+          echo "Evidence for run ${GITHUB_RUN_ID} stored; locked until ${RETAIN_UNTIL}"

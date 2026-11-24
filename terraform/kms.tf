@@ -261,6 +261,27 @@ data "aws_iam_policy_document" "kms_evidence" {
     }
   }
 
+  # Verification (Layer 3/4): key admins act as the evidence verifiers, so
+  # they can download and check signed bundles. Decrypt only, only through
+  # S3; they still can't decrypt PHI, which uses the separate data key.
+  statement {
+    sid       = "AllowAdminsVerifyEvidenceViaS3"
+    effect    = "Allow"
+    actions   = ["kms:Decrypt"]
+    resources = ["*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = var.kms_key_administrator_arns
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["s3.${local.region}.amazonaws.com"]
+    }
+  }
+
   # Pipeline (Layer 3): upload signed evidence bundles to the vault and
   # read them back to verify. GenerateDataKey to write, Decrypt to read
   # (and for multipart uploads). Only through S3.
