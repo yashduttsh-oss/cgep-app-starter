@@ -126,7 +126,7 @@ resource "aws_dynamodb_table" "intake" {
   # customer custody.
   server_side_encryption {
     enabled     = true
-    kms_key_arn = aws_kms_key.data.arn
+    # kms_key_arn = aws_kms_key.data.arn
   }
 }
 
@@ -177,10 +177,9 @@ resource "aws_iam_role_policy" "lambda_inline" {
 }
 
 data "archive_file" "handler" {
-  type             = "zip"
-  source_file      = "${path.module}/lambda/handler.py"
-  output_path      = "${path.module}/lambda/handler.zip"
-  output_file_mode = "0644" # same file mode on Windows and Linux, so the zip hash is reproducible
+  type        = "zip"
+  source_file = "${path.module}/lambda/handler.py"
+  output_path = "${path.module}/lambda/handler.zip"
 }
 
 resource "aws_iam_role" "lambda" {
