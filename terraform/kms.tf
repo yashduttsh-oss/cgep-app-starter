@@ -261,7 +261,7 @@ data "aws_iam_policy_document" "kms_evidence" {
     }
   }
 
-  # Pipeline (Phase 4): upload signed evidence bundles to the vault and
+  # Pipeline (Layer 3): upload signed evidence bundles to the vault and
   # read them back to verify. GenerateDataKey to write, Decrypt to read
   # (and for multipart uploads). Only through S3.
   statement {

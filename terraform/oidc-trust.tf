@@ -94,7 +94,7 @@ locals {
 }
 
 data "aws_iam_policy_document" "github_actions" {
-  # ---- Terraform remote state (step 2.9) ----
+  # ---- Terraform remote state (step 1.9) ----
   statement {
     sid       = "StateBucketList"
     actions   = ["s3:ListBucket"]
@@ -152,7 +152,7 @@ data "aws_iam_policy_document" "github_actions" {
     resources = [local.stack_buckets]
   }
 
-  # ---- Evidence upload and verification (Phase 4) ----
+  # ---- Evidence upload and verification (Layer 3) ----
   statement {
     sid       = "UploadAndVerifyEvidence"
     actions   = ["s3:PutObject", "s3:GetObject", "s3:GetObjectRetention"]
