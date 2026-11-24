@@ -1,0 +1,577 @@
+{
+  "component-definition": {
+    "uuid": "0dbda1a3-751c-41cf-bb41-eaa833fc7fba",
+    "metadata": {
+      "title": "Acme Health Patient Intake API: CMMC Level 2 control implementation",
+      "last-modified": "2026-11-24T20:00:00+00:00",
+      "version": "1.0.0",
+      "oscal-version": "1.1.3",
+      "parties": [
+        {
+          "uuid": "be409350-871f-49ea-9651-f6c79d26dafe",
+          "type": "organization",
+          "name": "Acme Health"
+        }
+      ],
+      "remarks": "Describes the cgep-app-starter workload as deployed by github.com/yashduttsh-oss/cgep-app-starter, plus the GRC baseline wrapped around it. Primary framework: CMMC 2.0 Level 2, which inherits NIST SP 800-171; controls cite the NIST SP 800-171 Rev 3 catalog."
+    },
+    "components": [
+      {
+        "uuid": "d37a554c-4855-4cf7-bc26-e36fb952b3a1",
+        "type": "service",
+        "title": "Acme Health Patient Intake API",
+        "description": "Telehealth patient intake service in AWS us-east-1: an API Gateway HTTP API invokes a Python Lambda in private subnets of the starter's VPC, which writes submissions to DynamoDB and attachments to S3. Wrapped with customer-managed KMS keys, an Object Lock evidence vault, a multi-region CloudTrail, and a GitHub Actions pipeline that plans, gates with OPA/Conftest, applies on merge, signs evidence with Cosign keyless and stores it in the vault. All infrastructure is defined in terraform/.",
+        "props": [
+          {
+            "name": "repository",
+            "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+            "value": "https://github.com/yashduttsh-oss/cgep-app-starter"
+          },
+          {
+            "name": "aws-region",
+            "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+            "value": "us-east-1"
+          },
+          {
+            "name": "pipeline",
+            "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+            "value": ".github/workflows/grc-gate.yml"
+          }
+        ],
+        "responsible-roles": [
+          {
+            "role-id": "provider",
+            "party-uuids": [
+              "be409350-871f-49ea-9651-f6c79d26dafe"
+            ]
+          }
+        ],
+        "control-implementations": [
+          {
+            "uuid": "0accbe3e-c532-4694-a00b-ef8070e7644c",
+            "source": "https://raw.githubusercontent.com/usnistgov/oscal-content/main/nist.gov/SP800-171/rev3/json/NIST_SP800-171_rev3_catalog.json",
+            "description": "CMMC 2.0 Level 2 practices implemented by this component, expressed against the NIST SP 800-171 Rev 3 catalog that CMMC Level 2 is derived from. Each requirement names the Terraform resources that implement it and links to signed, Object Lock-protected pipeline evidence.",
+            "implemented-requirements": [
+              {
+                "uuid": "348baa23-3368-4266-932d-224a37d31082",
+                "control-id": "SP_800_171_03.13.11",
+                "description": "PHI at rest is encrypted under a customer-managed KMS key Acme controls, not an AWS-owned or AWS-managed key. The uploads bucket uses SSE-KMS with the data key through the secure-bucket module; the DynamoDB intake table, the dead-letter queue and the API access log group use the same data key. The key has automatic rotation enabled and a least-privilege key policy: named administrators can manage but not use it, and workload use is limited to specific AWS services with kms:ViaService.",
+                "props": [
+                  {
+                    "name": "cmmc-practice",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "SC.L2-3.13.11"
+                  },
+                  {
+                    "name": "gap",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "GAP-01, GAP-02"
+                  },
+                  {
+                    "name": "implementation-status",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_kms_key.data"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "module.uploads_bucket.aws_s3_bucket_server_side_encryption_configuration.this"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_dynamodb_table.intake"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_sqs_queue.intake_dlq"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_cloudwatch_log_group.api_access"
+                  },
+                  {
+                    "name": "policy-guard",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "compliance.gap01_s3_encryption, compliance.gap02_dynamodb_encryption",
+                    "remarks": "Rego namespace enforced by scripts/policy-gate.sh on every plan"
+                  },
+                  {
+                    "name": "evidence-sha256",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "23317b35bcea07b693dcb64a89ad5a29fb4e8ac94d4c435ca19915ee86694e0f",
+                    "remarks": "SHA-256 of the run 45456179365 bundle"
+                  },
+                  {
+                    "name": "evidence-sha256",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "0921e8e1738c3602c5083a76a97f3318f647efa4bee2b766dfabab80fde27569",
+                    "remarks": "SHA-256 of the run 45461398718 bundle (blocked regression)"
+                  }
+                ],
+                "links": [
+                  {
+                    "href": "s3://acme-health-intake-evidence-63f7bc54/runs/45456179365/evidence-45456179365-5d3a6ba3b21bdc4335420bb4a1f8407dfffeeba0.tar.gz",
+                    "rel": "evidence",
+                    "media-type": "application/gzip",
+                    "text": "Signed evidence bundle, green pipeline run 45456179365 on main (plan, Conftest PASS, apply). Verify: scripts/verify-evidence.sh 45456179365"
+                  },
+                  {
+                    "href": "s3://acme-health-intake-evidence-63f7bc54/runs/45461398718/evidence-45461398718-9a0a04aacf8687f5a8d270a08c9ce02207ad873b.tar.gz",
+                    "rel": "evidence",
+                    "media-type": "application/gzip",
+                    "text": "Signed evidence bundle, red PR run 45461398718: gate DENY under SC.L2-3.13.11, apply skipped. Verify: scripts/verify-evidence.sh 45461398718"
+                  }
+                ],
+                "remarks": "Enforcement is tested: the red PR removed the table's kms_key_arn and the gate denied it before apply (run 45461398718)."
+              },
+              {
+                "uuid": "c220ff5f-e34a-4420-816d-ca5f4050f272",
+                "control-id": "SP_800_171_03.13.08",
+                "description": "Data in transit is protected with TLS. Every S3 bucket in the stack (uploads, evidence vault, CloudTrail logs) carries a bucket-policy statement that denies all S3 actions, for all principals, on the bucket and its objects when aws:SecureTransport is false. Clients reach the intake API only through its API Gateway HTTPS endpoint, and the Lambda reaches AWS services through VPC endpoints over HTTPS (security group egress limited to port 443).",
+                "props": [
+                  {
+                    "name": "cmmc-practice",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "SC.L2-3.13.8"
+                  },
+                  {
+                    "name": "gap",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "GAP-03"
+                  },
+                  {
+                    "name": "implementation-status",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "module.uploads_bucket.aws_s3_bucket_policy.this"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "module.evidence_bucket.aws_s3_bucket_policy.this"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "module.cloudtrail_bucket.aws_s3_bucket_policy.this"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_security_group.lambda"
+                  },
+                  {
+                    "name": "policy-guard",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "compliance.gap03_s3_tls_only",
+                    "remarks": "Rego namespace enforced by scripts/policy-gate.sh on every plan"
+                  },
+                  {
+                    "name": "evidence-sha256",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "23317b35bcea07b693dcb64a89ad5a29fb4e8ac94d4c435ca19915ee86694e0f",
+                    "remarks": "SHA-256 of the run 45456179365 bundle"
+                  }
+                ],
+                "links": [
+                  {
+                    "href": "s3://acme-health-intake-evidence-63f7bc54/runs/45456179365/evidence-45456179365-5d3a6ba3b21bdc4335420bb4a1f8407dfffeeba0.tar.gz",
+                    "rel": "evidence",
+                    "media-type": "application/gzip",
+                    "text": "Signed evidence bundle, green pipeline run 45456179365 on main (plan, Conftest PASS, apply). Verify: scripts/verify-evidence.sh 45456179365"
+                  }
+                ]
+              },
+              {
+                "uuid": "3128cbcf-90ab-4b64-904d-ec6fa4c91b18",
+                "control-id": "SP_800_171_03.08.09",
+                "description": "Overwritten or deleted PHI uploads remain recoverable: versioning is enabled on the uploads bucket, so prior object versions act as point-in-time backups. Every version is encrypted under the customer-managed data key, so backup copies carry the same cryptographic protection as current data.",
+                "props": [
+                  {
+                    "name": "cmmc-practice",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "MP.L2-3.8.9"
+                  },
+                  {
+                    "name": "gap",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "GAP-04"
+                  },
+                  {
+                    "name": "implementation-status",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "module.uploads_bucket.aws_s3_bucket_versioning.this"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_kms_key.data"
+                  },
+                  {
+                    "name": "evidence-sha256",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "23317b35bcea07b693dcb64a89ad5a29fb4e8ac94d4c435ca19915ee86694e0f",
+                    "remarks": "SHA-256 of the run 45456179365 bundle"
+                  }
+                ],
+                "links": [
+                  {
+                    "href": "s3://acme-health-intake-evidence-63f7bc54/runs/45456179365/evidence-45456179365-5d3a6ba3b21bdc4335420bb4a1f8407dfffeeba0.tar.gz",
+                    "rel": "evidence",
+                    "media-type": "application/gzip",
+                    "text": "Signed evidence bundle, green pipeline run 45456179365 on main (plan, Conftest PASS, apply). Verify: scripts/verify-evidence.sh 45456179365"
+                  }
+                ],
+                "remarks": "Enforced in Terraform only (no Rego guard): versioning is a low-churn setting, and the gate is reserved for the five material gaps to avoid alert fatigue."
+              },
+              {
+                "uuid": "e7d8df70-268c-4911-86a7-ae1500b6761f",
+                "control-id": "SP_800_171_03.13.01",
+                "description": "The intake Lambda runs inside the starter's existing VPC, in two private subnets whose route table has no internet route. Its security group allows no inbound traffic and only HTTPS outbound. It reaches S3 and DynamoDB through gateway endpoints, and CloudWatch Logs and X-Ray through interface endpoints restricted to the Lambda's security group, so PHI traffic stays on the AWS network.",
+                "props": [
+                  {
+                    "name": "cmmc-practice",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "SC.L2-3.13.1"
+                  },
+                  {
+                    "name": "gap",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "GAP-05"
+                  },
+                  {
+                    "name": "implementation-status",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_lambda_function.intake"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_subnet.private"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_route_table.private"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_security_group.lambda"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_security_group.vpc_endpoints"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_vpc_endpoint.s3"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_vpc_endpoint.dynamodb"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_vpc_endpoint.lambda_logs"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_vpc_endpoint.xray"
+                  },
+                  {
+                    "name": "policy-guard",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "compliance.gap05_lambda_in_vpc",
+                    "remarks": "Rego namespace enforced by scripts/policy-gate.sh on every plan"
+                  },
+                  {
+                    "name": "evidence-sha256",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "23317b35bcea07b693dcb64a89ad5a29fb4e8ac94d4c435ca19915ee86694e0f",
+                    "remarks": "SHA-256 of the run 45456179365 bundle"
+                  }
+                ],
+                "links": [
+                  {
+                    "href": "s3://acme-health-intake-evidence-63f7bc54/runs/45456179365/evidence-45456179365-5d3a6ba3b21bdc4335420bb4a1f8407dfffeeba0.tar.gz",
+                    "rel": "evidence",
+                    "media-type": "application/gzip",
+                    "text": "Signed evidence bundle, green pipeline run 45456179365 on main (plan, Conftest PASS, apply). Verify: scripts/verify-evidence.sh 45456179365"
+                  }
+                ]
+              },
+              {
+                "uuid": "4f04b4e0-1be3-469d-a243-345819d2fdd7",
+                "control-id": "SP_800_171_03.14.06",
+                "description": "The intake function is monitored: active X-Ray tracing records every request, failed asynchronous invocations go to a KMS-encrypted dead-letter queue (14-day retention) instead of being dropped, and API Gateway throttling bounds request volume.",
+                "props": [
+                  {
+                    "name": "cmmc-practice",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "SI.L2-3.14.6"
+                  },
+                  {
+                    "name": "gap",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "GAP-06"
+                  },
+                  {
+                    "name": "implementation-status",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "partial"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_lambda_function.intake"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_sqs_queue.intake_dlq"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_iam_role_policy.lambda_gap06"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_apigatewayv2_stage.default"
+                  },
+                  {
+                    "name": "evidence-sha256",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "23317b35bcea07b693dcb64a89ad5a29fb4e8ac94d4c435ca19915ee86694e0f",
+                    "remarks": "SHA-256 of the run 45456179365 bundle"
+                  }
+                ],
+                "links": [
+                  {
+                    "href": "s3://acme-health-intake-evidence-63f7bc54/runs/45456179365/evidence-45456179365-5d3a6ba3b21bdc4335420bb4a1f8407dfffeeba0.tar.gz",
+                    "rel": "evidence",
+                    "media-type": "application/gzip",
+                    "text": "Signed evidence bundle, green pipeline run 45456179365 on main (plan, Conftest PASS, apply). Verify: scripts/verify-evidence.sh 45456179365"
+                  }
+                ],
+                "remarks": "Partial: reserved concurrency is configurable (lambda_reserved_concurrency) but set to -1 in this account, whose total concurrency quota is 10, so reserving any would starve unreserved capacity; API throttling is the compensating control. The DLQ only receives asynchronous invocations, and API Gateway invokes the function synchronously."
+              },
+              {
+                "uuid": "4f1dd47e-fb1a-4353-a2a5-b58a853f5573",
+                "control-id": "SP_800_171_03.01.05",
+                "description": "Each identity has only the permissions its job needs. The Lambda role's inline policy allows dynamodb:PutItem on the intake table and s3:PutObject under uploads/ only, replacing the starter's dynamodb:* and s3:*. The CI pipeline role authenticates through GitHub OIDC (no stored keys), is trusted only for this repository's main branch and pull requests by immutable IDs, is scoped to this stack's resources, and has an explicit Deny on Object Lock bypass, bucket deletion, stopping or deleting the trail, and disabling or deleting KMS keys.",
+                "props": [
+                  {
+                    "name": "cmmc-practice",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "AC.L2-3.1.5"
+                  },
+                  {
+                    "name": "gap",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "GAP-07"
+                  },
+                  {
+                    "name": "implementation-status",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_iam_role_policy.lambda_inline"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_iam_role.github_actions"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_iam_role_policy.github_actions"
+                  },
+                  {
+                    "name": "policy-guard",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "compliance.gap07_iam_least_privilege",
+                    "remarks": "Rego namespace enforced by scripts/policy-gate.sh on every plan"
+                  },
+                  {
+                    "name": "evidence-sha256",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "23317b35bcea07b693dcb64a89ad5a29fb4e8ac94d4c435ca19915ee86694e0f",
+                    "remarks": "SHA-256 of the run 45456179365 bundle"
+                  }
+                ],
+                "links": [
+                  {
+                    "href": "s3://acme-health-intake-evidence-63f7bc54/runs/45456179365/evidence-45456179365-5d3a6ba3b21bdc4335420bb4a1f8407dfffeeba0.tar.gz",
+                    "rel": "evidence",
+                    "media-type": "application/gzip",
+                    "text": "Signed evidence bundle, green pipeline run 45456179365 on main (plan, Conftest PASS, apply). Verify: scripts/verify-evidence.sh 45456179365"
+                  }
+                ]
+              },
+              {
+                "uuid": "8af56845-4386-4cda-9f8a-0927ff616556",
+                "control-id": "SP_800_171_03.03.01",
+                "description": "Security-relevant events are logged. The API stage writes one JSON access-log record per request (request ID, source IP, time, method, route, protocol, status, response size) to a KMS-encrypted CloudWatch log group retained for 365 days. A multi-region CloudTrail trail with global service events records all management API calls to a dedicated, KMS-encrypted bucket.",
+                "props": [
+                  {
+                    "name": "cmmc-practice",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "AU.L2-3.3.1"
+                  },
+                  {
+                    "name": "gap",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "GAP-08"
+                  },
+                  {
+                    "name": "implementation-status",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_apigatewayv2_stage.default"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_cloudwatch_log_group.api_access"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_cloudtrail.main"
+                  },
+                  {
+                    "name": "evidence-sha256",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "23317b35bcea07b693dcb64a89ad5a29fb4e8ac94d4c435ca19915ee86694e0f",
+                    "remarks": "SHA-256 of the run 45456179365 bundle"
+                  }
+                ],
+                "links": [
+                  {
+                    "href": "s3://acme-health-intake-evidence-63f7bc54/runs/45456179365/evidence-45456179365-5d3a6ba3b21bdc4335420bb4a1f8407dfffeeba0.tar.gz",
+                    "rel": "evidence",
+                    "media-type": "application/gzip",
+                    "text": "Signed evidence bundle, green pipeline run 45456179365 on main (plan, Conftest PASS, apply). Verify: scripts/verify-evidence.sh 45456179365"
+                  }
+                ],
+                "remarks": "Known limitation (GAP-08): AWS WAF cannot be associated with an API Gateway HTTP API, so the API has no WAF. Remediation path: front the API with CloudFront plus WAF, or migrate to a REST API. Stage throttling is in place in the meantime."
+              },
+              {
+                "uuid": "a9aeb933-fe34-417b-a6f5-f2494bd9cc53",
+                "control-id": "SP_800_171_03.03.08",
+                "description": "Audit information and pipeline evidence are protected from modification and deletion. Every pipeline run's signed bundle lands in a dedicated bucket with S3 Object Lock in GOVERNANCE mode and 365-day default retention, versioning, and a separate evidence KMS key the workload cannot use. CloudTrail log-file validation makes log tampering detectable, and the pipeline role is explicitly denied s3:BypassGovernanceRetention, bucket deletion and trail changes.",
+                "props": [
+                  {
+                    "name": "cmmc-practice",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "AU.L2-3.3.8"
+                  },
+                  {
+                    "name": "gap",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "Evidence vault"
+                  },
+                  {
+                    "name": "implementation-status",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_s3_bucket.evidence"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_s3_bucket_object_lock_configuration.evidence"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_kms_key.evidence"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_cloudtrail.main"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "aws_iam_role_policy.github_actions"
+                  },
+                  {
+                    "name": "evidence-sha256",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "23317b35bcea07b693dcb64a89ad5a29fb4e8ac94d4c435ca19915ee86694e0f",
+                    "remarks": "SHA-256 of the run 45456179365 bundle"
+                  },
+                  {
+                    "name": "evidence-sha256",
+                    "ns": "https://github.com/yashduttsh-oss/cgep-app-starter/ns/oscal",
+                    "value": "0921e8e1738c3602c5083a76a97f3318f647efa4bee2b766dfabab80fde27569",
+                    "remarks": "SHA-256 of the run 45461398718 bundle"
+                  }
+                ],
+                "links": [
+                  {
+                    "href": "s3://acme-health-intake-evidence-63f7bc54/runs/45456179365/evidence-45456179365-5d3a6ba3b21bdc4335420bb4a1f8407dfffeeba0.tar.gz",
+                    "rel": "evidence",
+                    "media-type": "application/gzip",
+                    "text": "Signed evidence bundle, green pipeline run 45456179365 on main (plan, Conftest PASS, apply). Verify: scripts/verify-evidence.sh 45456179365"
+                  },
+                  {
+                    "href": "s3://acme-health-intake-evidence-63f7bc54/runs/45461398718/evidence-45461398718-9a0a04aacf8687f5a8d270a08c9ce02207ad873b.tar.gz",
+                    "rel": "evidence",
+                    "media-type": "application/gzip",
+                    "text": "Signed evidence bundle, red PR run 45461398718: gate DENY under SC.L2-3.13.11, apply skipped. Verify: scripts/verify-evidence.sh 45461398718"
+                  }
+                ],
+                "remarks": "GOVERNANCE (not COMPLIANCE) mode is a deliberate choice while the program stabilizes; COMPLIANCE is deferred."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
