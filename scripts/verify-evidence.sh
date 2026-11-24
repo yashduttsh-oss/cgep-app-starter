@@ -41,7 +41,7 @@ ACTUAL=$("${SHASUM[@]}" "$BUNDLE" | awk '{print $1}')
 echo "1. Integrity: SHA-256 matches ($ACTUAL)"
 
 # 2. Authenticity + timestamp
-cosign verify-blob --bundle "${BUNDLE}.sig.bundle" \
+MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' cosign verify-blob --bundle "${BUNDLE}.sig.bundle" \
   --certificate-identity-regexp "$IDENTITY" --certificate-oidc-issuer "$ISSUER" \
   "$BUNDLE"
 echo "2. Authenticity: signed by grc-gate.yml in yashduttsh-oss/cgep-app-starter"

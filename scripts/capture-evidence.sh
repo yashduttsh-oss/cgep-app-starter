@@ -32,7 +32,7 @@ jq -n --arg run "$RUN_ID" --arg sha "$SHA" --arg at "$CAPTURED_AT" \
     framework:"CMMC 2.0 Level 2 (NIST SP 800-171)"}' > "$EVIDENCE_DIR/run.json"
 git log -1 --pretty=fuller > "$EVIDENCE_DIR/commit.txt"
 terraform version > "$EVIDENCE_DIR/versions.txt"
-{ opa version | head -1; conftest --version; } >> "$EVIDENCE_DIR/versions.txt"
+{ opa version | sed -n 1p; conftest --version; } >> "$EVIDENCE_DIR/versions.txt"
 
 # manifest.json: name, SHA-256 and size of every file in the bundle.
 ( cd "$EVIDENCE_DIR"
