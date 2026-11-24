@@ -79,7 +79,7 @@ jobs:
           terraform -chdir=terraform init -input=false -no-color > /dev/null
           terraform -chdir=terraform validate -no-color
           terraform -chdir=terraform plan -input=false -no-color -out=tfplan > "$EVIDENCE_DIR/plan.txt"
-          grep -E '^(Plan:|No changes)' "$EVIDENCE_DIR/plan.txt" || true
+          grep -E '^  # .* will be|^(Plan:|No changes)' "$EVIDENCE_DIR/plan.txt" || true
           VAULT=$(terraform -chdir=terraform output -raw evidence_vault_bucket)
           echo "::add-mask::$VAULT"
           echo "VAULT=$VAULT" >> "$GITHUB_ENV"
