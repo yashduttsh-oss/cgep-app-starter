@@ -119,6 +119,6 @@ variable "github_oidc_subject_prefix" {
 
 variable "tf_state_bucket" {
   type        = string
-  description = "S3 bucket holding Terraform state (bootstrapped in step 2.9). Must match the backend block in main.tf."
+  description = "S3 bucket holding Terraform state (bootstrapped in step 1.9). Must match the backend block in main.tf."
   default     = "acme-health-intake-tfstate-ysd"
 }
